@@ -8,7 +8,7 @@ import { db } from "@/lib/firebase";
 import { BankQuestion, getBankQuestions, saveBankQuestions } from "@/lib/questionBank";
 
 function bankRef(uid: string) {
-  return doc(db, "user_questionbanks", uid);
+  return doc(db, "user_sessions", uid, "quizzes", "questionbank");
 }
 
 /** Recursively strip all undefined values from an object. Firestore rejects undefined. */
@@ -38,6 +38,8 @@ function cleanQuestions(questions: BankQuestion[]): unknown[] {
     if (q.topic) base.topic = q.topic;
     if (q.explanation) base.explanation = q.explanation;
     if (q.passageId) base.passageId = q.passageId;
+    if (q.imageUrl) base.imageUrl = q.imageUrl;
+    if (q.diagram) base.diagram = q.diagram;
     return stripUndefined(base);
   });
 }

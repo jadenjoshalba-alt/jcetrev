@@ -1528,11 +1528,13 @@ export default function Dashboard() {
   const handleSyncBank = async () => {
     if (!user) return;
     setBankSyncing(true);
+    setBankSyncMsg("Saving changes to your account...");
     try {
       await uploadBankToFirestore(user.uid);
       setBankSyncMsg("Question bank saved to your account.");
-    } catch {
-      setBankSyncMsg("Sync failed. Check your connection.");
+    } catch (err: any) {
+      console.error(err);
+      setBankSyncMsg(`Sync failed: ${err.message || "Unknown error"}`);
     } finally {
       setBankSyncing(false);
       setTimeout(() => setBankSyncMsg(""), 4000);
@@ -1602,6 +1604,9 @@ export default function Dashboard() {
   const handleClearBank = () => {
     clearBank();
     refreshBankStats();
+    if (user) {
+      handleSyncBank();
+    }
   };
 
   const handleResetUsed = () => {
@@ -1616,7 +1621,12 @@ export default function Dashboard() {
       <PromptGeneratorPanel
         open={showUpload}
         onClose={() => setShowUpload(false)}
-        onUploaded={refreshBankStats}
+        onUploaded={() => {
+          refreshBankStats();
+          if (user) {
+            handleSyncBank();
+          }
+        }}
       />
 
       <div className="space-y-8">
@@ -1648,12 +1658,6 @@ export default function Dashboard() {
                   <Upload className="h-4 w-4" />
                   Upload Questions
                 </Button>
-                {user && bankStats.total > 0 && (
-                  <Button size="sm" variant="outline" onClick={handleSyncBank} disabled={bankSyncing} className="gap-2">
-                    <Cloud className="h-4 w-4" />
-                    {bankSyncing ? "Saving…" : "Sync to Account"}
-                  </Button>
-                )}
                 {bankStats.unused < bankStats.total && bankStats.total > 0 && (
                   <Button size="sm" variant="outline" onClick={handleResetUsed} className="gap-2">
                     <RefreshCw className="h-4 w-4" />
