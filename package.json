@@ -12,8 +12,7 @@
     "build": "npm run typecheck && npm run build --workspaces --if-present",
     "typecheck:libs": "tsc --build",
     "typecheck": "npm run typecheck:libs && npm run typecheck --workspaces --if-present",
-    "dev": "npm run dev --workspace=@workspace/upcat",
-    "start": "node --enable-source-maps artifacts/api-server/dist/index.mjs"
+    "dev": "npm run dev --workspace=@workspace/upcat"
   },
   "private": true,
   "devDependencies": {
