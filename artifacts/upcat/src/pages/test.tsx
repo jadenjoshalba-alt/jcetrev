@@ -103,7 +103,7 @@ function buildPages(questions: any[]): TestPage[] {
 export default function TestPage() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
-  const { questions, answers, setAnswers, timeRemaining, setTimeRemaining, status, setStatus, setLastSession } = useTest();
+  const { universityId, questions, answers, setAnswers, timeRemaining, setTimeRemaining, status, setStatus, setLastSession } = useTest();
 
   const [currentPage, setCurrentPage] = useState(0);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
@@ -160,8 +160,8 @@ export default function TestPage() {
       return ans;
     });
 
-    markQuestionsUsed(questions.map((q) => q.id));
-    const upcatScore = correctCount - 0.25 * wrongCount;
+    markQuestionsUsed(questions.map((q) => q.id), universityId);
+    const upcatScore = universityId === "upcat" ? correctCount - 0.25 * wrongCount : correctCount;
     const sessionData = {
       answers: sessionAnswers,
       totalScore: upcatScore,
@@ -174,7 +174,7 @@ export default function TestPage() {
 
     if (user) {
       try {
-        const saved = await saveSession(user.uid, sessionData);
+        const saved = await saveSession(user.uid, universityId, sessionData);
         setLastSession(saved);
       } catch (err) {
         console.error("Failed to save session to Firestore:", err);

@@ -12,12 +12,12 @@ export interface BankQuestion {
   diagram?: import("@/types/diagram").DiagramSpec;
 }
 
-const BANK_KEY = "upcat_question_bank";
-const USED_KEY = "upcat_used_question_ids";
+const getBankKey = (uniId: string) => `iskolartrack_bank_${uniId}`;
+const getUsedKey = (uniId: string) => `iskolartrack_used_${uniId}`;
 
-export function getBankQuestions(): BankQuestion[] {
+export function getBankQuestions(uniId: string): BankQuestion[] {
   try {
-    const raw = localStorage.getItem(BANK_KEY);
+    const raw = localStorage.getItem(getBankKey(uniId));
     if (!raw) return [];
     return JSON.parse(raw) as BankQuestion[];
   } catch {
@@ -25,26 +25,26 @@ export function getBankQuestions(): BankQuestion[] {
   }
 }
 
-export function saveBankQuestions(questions: BankQuestion[]): void {
-  localStorage.setItem(BANK_KEY, JSON.stringify(questions));
+export function saveBankQuestions(questions: BankQuestion[], uniId: string): void {
+  localStorage.setItem(getBankKey(uniId), JSON.stringify(questions));
 }
 
-export function addBankQuestions(incoming: BankQuestion[]): { added: number; skipped: number } {
-  const existing = getBankQuestions();
+export function addBankQuestions(incoming: BankQuestion[], uniId: string): { added: number; skipped: number } {
+  const existing = getBankQuestions(uniId);
   const existingIds = new Set(existing.map((q) => q.id));
   const toAdd = incoming.filter((q) => !existingIds.has(q.id));
-  saveBankQuestions([...existing, ...toAdd]);
+  saveBankQuestions([...existing, ...toAdd], uniId);
   return { added: toAdd.length, skipped: incoming.length - toAdd.length };
 }
 
-export function clearBank(): void {
-  localStorage.removeItem(BANK_KEY);
-  localStorage.removeItem(USED_KEY);
+export function clearBank(uniId: string): void {
+  localStorage.removeItem(getBankKey(uniId));
+  localStorage.removeItem(getUsedKey(uniId));
 }
 
-export function getUsedIds(): Set<string> {
+export function getUsedIds(uniId: string): Set<string> {
   try {
-    const raw = localStorage.getItem(USED_KEY);
+    const raw = localStorage.getItem(getUsedKey(uniId));
     if (!raw) return new Set();
     return new Set(JSON.parse(raw) as string[]);
   } catch {
@@ -52,14 +52,14 @@ export function getUsedIds(): Set<string> {
   }
 }
 
-export function markQuestionsUsed(ids: string[]): void {
-  const used = getUsedIds();
+export function markQuestionsUsed(ids: string[], uniId: string): void {
+  const used = getUsedIds(uniId);
   ids.forEach((id) => used.add(id));
-  localStorage.setItem(USED_KEY, JSON.stringify([...used]));
+  localStorage.setItem(getUsedKey(uniId), JSON.stringify([...used]));
 }
 
-export function resetUsedIds(): void {
-  localStorage.removeItem(USED_KEY);
+export function resetUsedIds(uniId: string): void {
+  localStorage.removeItem(getUsedKey(uniId));
 }
 
 function getPassageId(q: BankQuestion): string | null {
@@ -79,10 +79,11 @@ function getPassageId(q: BankQuestion): string | null {
 export function pickQuestions(
   subject: string,
   count: number,
-  topics: string[]
+  topics: string[],
+  uniId: string
 ): BankQuestion[] {
-  const all = getBankQuestions();
-  const used = getUsedIds();
+  const all = getBankQuestions(uniId);
+  const used = getUsedIds(uniId);
 
   const filterFn = (q: BankQuestion) => {
     if (q.subject !== subject) return false;
@@ -111,7 +112,6 @@ export function pickQuestions(
 
     // Shuffle passage groups
     const groupKeys = Object.keys(passageGroups).sort(() => Math.random() - 0.5);
-
     let result: BankQuestion[] = [];
     for (const key of groupKeys) {
       const group = passageGroups[key];
@@ -130,7 +130,6 @@ export function pickQuestions(
         result.push(q);
       }
     }
-
     return result;
   }
 
@@ -139,9 +138,9 @@ export function pickQuestions(
   return shuffled.slice(0, count);
 }
 
-export function getBankStats(subject?: string): { total: number; unused: number } {
-  const all = getBankQuestions();
-  const used = getUsedIds();
+export function getBankStats(uniId: string, subject?: string): { total: number; unused: number } {
+  const all = getBankQuestions(uniId);
+  const used = getUsedIds(uniId);
   const filtered = subject ? all.filter((q) => q.subject === subject) : all;
   const unused = filtered.filter((q) => !used.has(q.id)).length;
   return { total: filtered.length, unused };

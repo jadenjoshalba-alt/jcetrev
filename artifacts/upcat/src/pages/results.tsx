@@ -21,11 +21,11 @@ function getStatus(pct: number) {
 
 export default function ResultsPage() {
   const [, setLocation] = useLocation();
-  const { lastSession, resetTest } = useTest();
+  const { lastSession, universityId, resetTest } = useTest();
 
   useEffect(() => {
-    if (!lastSession) setLocation("/");
-  }, [lastSession, setLocation]);
+    if (!lastSession) setLocation(`/university/${universityId || 'upcat'}`);
+  }, [lastSession, setLocation, universityId]);
 
   if (!lastSession) return null;
 
@@ -35,9 +35,12 @@ export default function ResultsPage() {
   const wrongCount = lastSession.wrongCount ?? (answers as SessionAnswer[]).filter((a) => !a.isCorrect && !a.isBlank).length;
   const blankCount = lastSession.blankCount ?? (answers as SessionAnswer[]).filter((a) => a.isBlank).length;
 
-  const upcatScore = correctCount - 0.25 * wrongCount;
+  const score = universityId === "upcat" ? correctCount - 0.25 * wrongCount : correctCount;
+  const scoreLabel = universityId === "upcat" ? "UPCAT Score" : "Score";
+  const displayScore = Math.max(0, score).toFixed(2);
+  
   const accuracyPct = Math.round((correctCount / totalQuestions) * 100);
-  const upcatPct = Math.round((upcatScore / totalQuestions) * 100);
+  const upcatPct = Math.round((Math.max(0, score) / totalQuestions) * 100);
 
   const status = getStatus(accuracyPct);
   const StatusIcon = status.icon;
@@ -75,7 +78,9 @@ export default function ResultsPage() {
             <XCircle className="h-6 w-6 text-red-600 mx-auto mb-1" />
             <div className="text-3xl font-bold text-red-700 dark:text-red-400">{wrongCount}</div>
             <div className="text-xs text-red-600 dark:text-red-500 font-medium mt-0.5">Wrong</div>
-            <div className="text-xs text-muted-foreground">(-0.25 each)</div>
+            <div className="text-xs text-muted-foreground">
+              {universityId === "upcat" ? "(-0.25 each)" : "(no penalty)"}
+            </div>
           </Card>
           <Card className="text-center p-4 border-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/20">
             <MinusCircle className="h-6 w-6 text-gray-500 mx-auto mb-1" />
@@ -95,8 +100,12 @@ export default function ResultsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card className="shadow-md border-2">
             <CardHeader className="pb-2">
-              <CardTitle className="text-xl">UPCAT Score Profile</CardTitle>
-              <CardDescription>Score = Correct − (0.25 × Wrong)</CardDescription>
+              <CardTitle className="text-xl">{scoreLabel} Profile</CardTitle>
+              <CardDescription>
+                {universityId === "upcat" 
+                  ? "Score = Correct − (0.25 × Wrong)" 
+                  : "Score = Correct Answers"}
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex flex-col items-center gap-6 py-4">
@@ -113,8 +122,8 @@ export default function ResultsPage() {
                     />
                   </svg>
                   <div className="absolute flex flex-col items-center justify-center">
-                    <span className="text-3xl font-bold">{Math.max(0, upcatScore).toFixed(2)}</span>
-                    <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider mt-0.5">UPCAT Score</span>
+                    <span className="text-3xl font-bold">{displayScore}</span>
+                    <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider mt-0.5">{scoreLabel}</span>
                   </div>
                 </div>
 
@@ -123,13 +132,15 @@ export default function ResultsPage() {
                     <span className="text-muted-foreground">Raw score (no deduction)</span>
                     <span className="font-bold">{correctCount} / {totalQuestions}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Deduction (−0.25 × {wrongCount})</span>
-                    <span className="font-bold text-red-500">−{(0.25 * wrongCount).toFixed(2)}</span>
-                  </div>
+                  {universityId === "upcat" && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Deduction (−0.25 × {wrongCount})</span>
+                      <span className="font-bold text-red-500">−{(0.25 * wrongCount).toFixed(2)}</span>
+                    </div>
+                  )}
                   <div className="border-t pt-2 flex justify-between">
-                    <span className="font-semibold">UPCAT Score</span>
-                    <span className="font-bold text-primary">{Math.max(0, upcatScore).toFixed(2)}</span>
+                    <span className="font-semibold">{scoreLabel}</span>
+                    <span className="font-bold text-primary">{displayScore}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Accuracy %</span>
@@ -164,10 +175,12 @@ export default function ResultsPage() {
                     <div className="font-bold text-lg">{blankCount > 0 ? "Skip wisely" : "No blanks"}</div>
                     <div className="text-xs text-muted-foreground">{blankCount} blank{blankCount !== 1 ? "s" : ""}</div>
                   </div>
-                  <div className="bg-background/60 rounded p-2 text-center">
-                    <div className="font-bold text-lg">{wrongCount > 0 ? `−${(0.25 * wrongCount).toFixed(2)}` : "±0"}</div>
-                    <div className="text-xs text-muted-foreground">Penalty points</div>
-                  </div>
+                  {universityId === "upcat" && (
+                    <div className="bg-background/60 rounded p-2 text-center">
+                      <div className="font-bold text-lg">{wrongCount > 0 ? `−${(0.25 * wrongCount).toFixed(2)}` : "±0"}</div>
+                      <div className="text-xs text-muted-foreground">Penalty points</div>
+                    </div>
+                  )}
                   <div className="bg-background/60 rounded p-2 text-center">
                     <div className="font-bold text-lg font-mono">{formatTime(timeTakenSeconds)}</div>
                     <div className="text-xs text-muted-foreground">Time used</div>
@@ -182,7 +195,7 @@ export default function ResultsPage() {
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 )}
-                <Button size="lg" variant="outline" className="w-full" onClick={() => { resetTest(); setLocation("/"); }}>
+                <Button size="lg" variant="outline" className="w-full" onClick={() => { resetTest(); setLocation(`/university/${universityId || 'upcat'}`); }}>
                   <RotateCcw className="mr-2 h-4 w-4" />
                   Take Another Test
                 </Button>
@@ -212,7 +225,7 @@ export default function ResultsPage() {
                 </thead>
                 <tbody className="divide-y">
                   {Object.entries(subjectBreakdown).map(([subject, stats]) => {
-                    const subjectScore = stats.correct - 0.25 * stats.wrong;
+                    const subjectScore = universityId === "upcat" ? stats.correct - 0.25 * stats.wrong : stats.correct;
                     const subjectAcc = Math.round((stats.correct / stats.total) * 100);
                     return (
                       <tr key={subject} className="bg-card hover:bg-muted/30 transition-colors">
@@ -249,7 +262,7 @@ export default function ResultsPage() {
                     <td className="px-4 py-3 text-center font-bold text-green-600">{correctCount}</td>
                     <td className="px-4 py-3 text-center font-bold text-red-600">{wrongCount}</td>
                     <td className="px-4 py-3 text-center font-bold text-muted-foreground">{blankCount}</td>
-                    <td className="px-4 py-3 text-center font-bold text-primary">{Math.max(0, upcatScore).toFixed(2)}</td>
+                    <td className="px-4 py-3 text-center font-bold text-primary">{displayScore}</td>
                     <td className="px-4 py-3 text-right font-bold">{accuracyPct}%</td>
                   </tr>
                 </tfoot>
@@ -259,17 +272,19 @@ export default function ResultsPage() {
         </Card>
 
         {/* Study tips */}
-        <Card className="shadow-sm bg-muted/30">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">UPCAT Scoring Tip</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground space-y-1">
-            <p>• <strong>Right answer:</strong> +1 point</p>
-            <p>• <strong>Wrong answer:</strong> −0.25 point (penalty for guessing incorrectly)</p>
-            <p>• <strong>Blank:</strong> 0 points (no penalty — skip if very unsure)</p>
-            <p>• <strong>Strategy:</strong> Only guess when you can eliminate at least 2 choices. Otherwise, leave blank.</p>
-          </CardContent>
-        </Card>
+        {universityId === "upcat" && (
+          <Card className="shadow-sm bg-muted/30">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">UPCAT Scoring Tip</CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground space-y-1">
+              <p>• <strong>Right answer:</strong> +1 point</p>
+              <p>• <strong>Wrong answer:</strong> −0.25 point (penalty for guessing incorrectly)</p>
+              <p>• <strong>Blank:</strong> 0 points (no penalty — skip if very unsure)</p>
+              <p>• <strong>Strategy:</strong> Only guess when you can eliminate at least 2 choices. Otherwise, leave blank.</p>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </Layout>
   );

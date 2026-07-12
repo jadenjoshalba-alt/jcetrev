@@ -7,8 +7,8 @@ import {
 import { db } from "@/lib/firebase";
 import { BankQuestion, getBankQuestions, saveBankQuestions } from "@/lib/questionBank";
 
-function bankRef(uid: string) {
-  return doc(db, "user_sessions", uid, "quizzes", "questionbank");
+function bankRef(uid: string, universityId: string) {
+  return doc(db, "user_sessions", uid, "universities", universityId, "quizzes", "questionbank");
 }
 
 /** Recursively strip all undefined values from an object. Firestore rejects undefined. */
@@ -44,10 +44,10 @@ function cleanQuestions(questions: BankQuestion[]): unknown[] {
   });
 }
 
-export async function uploadBankToFirestore(uid: string): Promise<void> {
+export async function uploadBankToFirestore(uid: string, universityId: string): Promise<void> {
   try {
-    const questions = getBankQuestions();
-    await setDoc(bankRef(uid), {
+    const questions = getBankQuestions(universityId);
+    await setDoc(bankRef(uid, universityId), {
       questions: cleanQuestions(questions),
       updatedAt: serverTimestamp(),
     });
@@ -57,9 +57,9 @@ export async function uploadBankToFirestore(uid: string): Promise<void> {
   }
 }
 
-export async function downloadBankFromFirestore(uid: string): Promise<BankQuestion[]> {
+export async function downloadBankFromFirestore(uid: string, universityId: string): Promise<BankQuestion[]> {
   try {
-    const snap = await getDoc(bankRef(uid));
+    const snap = await getDoc(bankRef(uid, universityId));
     if (!snap.exists()) return [];
     const data = snap.data();
     return (data?.questions ?? []) as BankQuestion[];
@@ -69,18 +69,23 @@ export async function downloadBankFromFirestore(uid: string): Promise<BankQuesti
   }
 }
 
-export async function syncBankWithFirestore(uid: string): Promise<{ merged: number }> {
+export async function syncBankWithFirestore(uid: string, universityId: string): Promise<{ merged: number }> {
   try {
-    const remote = await downloadBankFromFirestore(uid);
-    const local = getBankQuestions();
+    const remote = await downloadBankFromFirestore(uid, universityId);
+    const local = getBankQuestions(universityId);
     const localIds = new Set(local.map((q) => q.id));
+    
     const toAdd = remote.filter((q) => !localIds.has(q.id));
+    if (toAdd.length === 0) return { merged: 0 };
+    
     const merged = [...local, ...toAdd];
-    saveBankQuestions(merged);
-    await setDoc(bankRef(uid), {
+    saveBankQuestions(merged, universityId);
+    
+    await setDoc(bankRef(uid, universityId), {
       questions: cleanQuestions(merged),
       updatedAt: serverTimestamp(),
     });
+    
     return { merged: toAdd.length };
   } catch (err) {
     console.error("[syncBankWithFirestore] Failed to sync question bank:", err);

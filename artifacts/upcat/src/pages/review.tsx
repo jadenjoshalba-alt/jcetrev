@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useRoute, Link } from "wouter";
 import { useAuth } from "@/context/AuthContext";
+import { useTest } from "@/context/TestContext";
 import { getSession } from "@/lib/firestoreSessions";
 import { Session } from "@/types/session";
 import { Layout } from "@/components/layout";
@@ -18,6 +19,8 @@ export default function ReviewPage() {
   const [, params] = useRoute("/review/:sessionId");
   const sessionId = params?.sessionId ?? "";
   const { user, loading: authLoading, signInWithGoogle } = useAuth();
+  const { universityId } = useTest();
+
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [filter, setFilter] = useState<"all" | "wrong" | "correct" | "blank">("all");
@@ -25,8 +28,8 @@ export default function ReviewPage() {
   useEffect(() => {
     if (!sessionId || authLoading || !user) return;
     setIsLoading(true);
-    getSession(user.uid, sessionId).then(setSession).finally(() => setIsLoading(false));
-  }, [sessionId, user, authLoading]);
+    getSession(user.uid, universityId, sessionId).then(setSession).finally(() => setIsLoading(false));
+  }, [sessionId, user, authLoading, universityId]);
 
   if (authLoading || isLoading) return <Layout><div className="flex-1 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div></Layout>;
   if (!user) return (
@@ -53,7 +56,8 @@ export default function ReviewPage() {
   const correctCount = session.correctCount ?? session.answers.filter((a) => a.isCorrect).length;
   const wrongCount = session.wrongCount ?? session.answers.filter((a) => !a.isCorrect && !a.isBlank).length;
   const blankCount = session.blankCount ?? session.answers.filter((a) => a.isBlank).length;
-  const upcatScore = Math.max(0, correctCount - 0.25 * wrongCount);
+  const score = universityId === "upcat" ? Math.max(0, correctCount - 0.25 * wrongCount) : correctCount;
+  const scoreLabel = universityId === "upcat" ? "UPCAT Score" : "Score";
   const accuracyPct = Math.round((correctCount / session.totalQuestions) * 100);
 
   const filtered = session.answers.filter((a) => {
@@ -98,8 +102,8 @@ export default function ReviewPage() {
           </div>
           <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 text-center">
             <TrendingUp className="h-5 w-5 text-primary mx-auto mb-1" />
-            <div className="text-2xl font-bold text-primary">{upcatScore.toFixed(2)}</div>
-            <div className="text-xs text-primary/80">UPCAT Score</div>
+            <div className="text-2xl font-bold text-primary">{score.toFixed(2)}</div>
+            <div className="text-xs text-primary/80">{scoreLabel}</div>
           </div>
         </div>
 

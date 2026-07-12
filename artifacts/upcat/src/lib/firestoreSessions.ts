@@ -12,8 +12,8 @@ import {
 import { db } from "@/lib/firebase";
 import { Session, SessionAnswer } from "@/types/session";
 
-function userSessionsCol(uid: string) {
-  return collection(db, "user_sessions", uid, "quizzes");
+function userSessionsCol(uid: string, universityId: string) {
+  return collection(db, "user_sessions", uid, "universities", universityId, "quizzes");
 }
 
 /** Recursively strip all undefined values from an object. Firestore rejects undefined. */
@@ -49,6 +49,7 @@ function cleanAnswer(ans: SessionAnswer): Record<string, unknown> {
 
 export async function saveSession(
   uid: string,
+  universityId: string,
   data: {
     answers: SessionAnswer[];
     totalScore: number;
@@ -68,7 +69,7 @@ export async function saveSession(
     totalQuestions: data.totalQuestions,
     timeTakenSeconds: data.timeTakenSeconds,
   };
-  const ref = await addDoc(userSessionsCol(uid), {
+  const ref = await addDoc(userSessionsCol(uid, universityId), {
     ...cleanData,
     createdAt: serverTimestamp(),
   });
@@ -80,9 +81,9 @@ export async function saveSession(
   };
 }
 
-export async function listSessions(uid: string): Promise<Session[]> {
+export async function listSessions(uid: string, universityId: string): Promise<Session[]> {
   try {
-    const q = query(userSessionsCol(uid), orderBy("createdAt", "desc"));
+    const q = query(userSessionsCol(uid, universityId), orderBy("createdAt", "desc"));
     const snapshot = await getDocs(q);
     return snapshot.docs.map((d) => {
       const raw = d.data();
@@ -116,9 +117,9 @@ export async function listSessions(uid: string): Promise<Session[]> {
   }
 }
 
-export async function getSession(uid: string, sessionId: string): Promise<Session | null> {
+export async function getSession(uid: string, universityId: string, sessionId: string): Promise<Session | null> {
   try {
-    const ref = doc(db, "user_sessions", uid, "quizzes", sessionId);
+    const ref = doc(db, "user_sessions", uid, "universities", universityId, "quizzes", sessionId);
     const snap = await getDoc(ref);
     if (!snap.exists()) return null;
     const raw = snap.data();

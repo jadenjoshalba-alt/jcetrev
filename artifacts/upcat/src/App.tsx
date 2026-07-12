@@ -7,6 +7,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 
 import Dashboard from "@/pages/dashboard";
+import UniversityPage from "@/pages/university";
 import TestPage from "@/pages/test";
 import ResultsPage from "@/pages/results";
 import ReviewPage from "@/pages/review";
@@ -19,6 +20,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
+      <Route path="/university/:id" component={UniversityPage} />
       <Route path="/test" component={TestPage} />
       <Route path="/results" component={ResultsPage} />
       <Route path="/review/:sessionId" component={ReviewPage} />

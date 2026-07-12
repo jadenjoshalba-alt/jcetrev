@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, ReactNode } from "react";
 import { Question, SessionAnswer, Session } from "@/types/session";
 
 interface TestContextType {
+  universityId: string;
+  setUniversityId: (id: string) => void;
   questions: Question[];
   answers: Record<string, SessionAnswer>;
   timeRemaining: number;
@@ -18,6 +20,7 @@ interface TestContextType {
 const TestContext = createContext<TestContextType | undefined>(undefined);
 
 export function TestProvider({ children }: { children: ReactNode }) {
+  const [universityId, setUniversityId] = useState<string>("upcat");
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Record<string, SessionAnswer>>({});
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
@@ -34,6 +37,8 @@ export function TestProvider({ children }: { children: ReactNode }) {
   return (
     <TestContext.Provider
       value={{
+        universityId,
+        setUniversityId,
         questions,
         answers,
         timeRemaining,
