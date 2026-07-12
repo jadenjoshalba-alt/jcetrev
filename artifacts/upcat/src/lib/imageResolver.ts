@@ -1,6 +1,6 @@
 /**
  * Resolves image URLs to correct paths based on the app's base path.
- * Works for both development (base "/") and production (base "/JUPCAT/").
+ * Works for both development (base "/") and production (base "/jcetrev/").
  */
 export function resolveImageUrl(url: string | undefined): string {
   if (!url) return "";
