@@ -1505,6 +1505,31 @@ export default function UniversityPage({ params }: { params: { id: string } }) {
   const [isLoadingSessions, setIsLoadingSessions] = useState(false);
   const [bankSyncing, setBankSyncing] = useState(false);
   const [bankSyncMsg, setBankSyncMsg] = useState("");
+  const [syncFailed, setSyncFailed] = useState(false);
+
+  const refreshBankStats = useCallback(() => {
+    setBankStats(getBankStats(params.id));
+  }, [params.id]);
+
+  const handleSyncBank = useCallback(async () => {
+    if (!user) return;
+    setBankSyncing(true);
+    setBankSyncMsg("Saving changes to your account...");
+    try {
+      await uploadBankToFirestore(user.uid, params.id);
+      setBankSyncMsg("Question bank saved to your account.");
+      setSyncFailed(false);
+      setTimeout(() => {
+        setBankSyncMsg((prev) => prev === "Question bank saved to your account." ? "" : prev);
+      }, 4000);
+    } catch (err: any) {
+      console.error(err);
+      setSyncFailed(true);
+      setBankSyncMsg(`Sync failed: ${err.message || "Unknown error"}`);
+    } finally {
+      setBankSyncing(false);
+    }
+  }, [user, params.id]);
 
   useEffect(() => {
     if (!user) {
@@ -1521,38 +1546,39 @@ export default function UniversityPage({ params }: { params: { id: string } }) {
       .finally(() => setIsLoadingSessions(false));
 
     // Auto-sync question bank with Firestore on login
+    setBankSyncMsg("Syncing question bank with your account...");
+    setSyncFailed(false);
     syncBankWithFirestore(user.uid, params.id)
       .then(({ merged }) => {
+        setSyncFailed(false);
         if (merged > 0) {
           refreshBankStats();
           setBankSyncMsg(`Synced ${merged} question(s) from your account.`);
-          setTimeout(() => setBankSyncMsg(""), 4000);
+          setTimeout(() => {
+            setBankSyncMsg((prev) => prev.startsWith("Synced") ? "" : prev);
+          }, 4000);
+        } else {
+          setBankSyncMsg("");
         }
       })
-      .catch((err) => {
+      .catch((err: any) => {
         console.error("[Dashboard] Bank sync failed:", err);
+        setSyncFailed(true);
+        setBankSyncMsg(`Sync failed: ${err.message || "Unknown error"}`);
       });
-  }, [user]);
+  }, [user, params.id, refreshBankStats]);
 
-  const refreshBankStats = useCallback(() => {
-    setBankStats(getBankStats(params.id));
-  }, [params.id]);
+  // Keep trying to sync every 4 seconds if it fails and user is logged in
+  useEffect(() => {
+    if (!user || !syncFailed || bankSyncing) return;
 
-  const handleSyncBank = async () => {
-    if (!user) return;
-    setBankSyncing(true);
-    setBankSyncMsg("Saving changes to your account...");
-    try {
-      await uploadBankToFirestore(user.uid, params.id);
-      setBankSyncMsg("Question bank saved to your account.");
-    } catch (err: any) {
-      console.error(err);
-      setBankSyncMsg(`Sync failed: ${err.message || "Unknown error"}`);
-    } finally {
-      setBankSyncing(false);
-      setTimeout(() => setBankSyncMsg(""), 4000);
-    }
-  };
+    const interval = setTimeout(() => {
+      console.log("[Dashboard] Retrying failed bank sync...");
+      handleSyncBank();
+    }, 4000);
+
+    return () => clearTimeout(interval);
+  }, [user, syncFailed, bankSyncing, handleSyncBank]);
 
   useEffect(() => {
     refreshBankStats();
@@ -1708,19 +1734,53 @@ export default function UniversityPage({ params }: { params: { id: string } }) {
                 </p>
               )}
               {bankSyncMsg && (
-                <p className="text-xs text-blue-600 dark:text-blue-400 mt-2 flex items-center gap-1.5">
-                  <Cloud className="h-3.5 w-3.5" />
-                  {bankSyncMsg}
-                </p>
+                <div className="mt-2 space-y-1">
+                  <p className={cn(
+                    "text-xs flex items-center gap-1.5 font-medium",
+                    syncFailed 
+                      ? "text-red-600 dark:text-red-400" 
+                      : "text-blue-600 dark:text-blue-400"
+                  )}>
+                    {syncFailed ? (
+                      <CloudOff className="h-3.5 w-3.5 shrink-0" />
+                    ) : (
+                      <Cloud className="h-3.5 w-3.5 shrink-0 animate-pulse" />
+                    )}
+                    {bankSyncMsg}
+                  </p>
+                  {syncFailed && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400 flex items-start gap-1.5 leading-relaxed bg-amber-50 dark:bg-amber-950/20 p-2 rounded border border-amber-200/30">
+                      <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                      <span>Warning: You can still use the questions, but your progress and new uploads will not sync with your account until connection is restored.</span>
+                    </p>
+                  )}
+                </div>
               )}
             </CardContent>
           )}
           {!bankStats.total && bankSyncMsg && (
             <CardContent className="pt-0 pb-3">
-              <p className="text-xs text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
-                <Cloud className="h-3.5 w-3.5" />
-                {bankSyncMsg}
-              </p>
+              <div className="space-y-1">
+                <p className={cn(
+                  "text-xs flex items-center gap-1.5 font-medium",
+                  syncFailed 
+                    ? "text-red-600 dark:text-red-400" 
+                    : "text-blue-600 dark:text-blue-400"
+                )}>
+                  {syncFailed ? (
+                    <CloudOff className="h-3.5 w-3.5 shrink-0" />
+                  ) : (
+                    <Cloud className="h-3.5 w-3.5 shrink-0 animate-pulse" />
+                  )}
+                  {bankSyncMsg}
+                </p>
+                {syncFailed && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 flex items-start gap-1.5 leading-relaxed bg-amber-50 dark:bg-amber-950/20 p-2 rounded border border-amber-200/30">
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                    <span>Warning: You can still use the questions, but your progress and new uploads will not sync with your account until connection is restored.</span>
+                  </p>
+                )}
+              </div>
             </CardContent>
           )}
         </Card>

@@ -65,7 +65,7 @@ export async function downloadBankFromFirestore(uid: string, universityId: strin
     return (data?.questions ?? []) as BankQuestion[];
   } catch (err) {
     console.error("[downloadBankFromFirestore] Failed to download question bank:", err);
-    return [];
+    throw err;
   }
 }
 
@@ -89,7 +89,7 @@ export async function syncBankWithFirestore(uid: string, universityId: string): 
     return { merged: toAdd.length };
   } catch (err) {
     console.error("[syncBankWithFirestore] Failed to sync question bank:", err);
-    return { merged: 0 };
+    throw err;
   }
 }
 
