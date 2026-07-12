@@ -12,8 +12,8 @@ export interface BankQuestion {
   diagram?: import("@/types/diagram").DiagramSpec;
 }
 
-const getBankKey = (uniId: string) => `iskolartrack_bank_${uniId}`;
-const getUsedKey = (uniId: string) => `iskolartrack_used_${uniId}`;
+const getBankKey = (uniId: string) => `kolehiyotrack_bank_${uniId}`;
+const getUsedKey = (uniId: string) => `kolehiyotrack_used_${uniId}`;
 
 export function getBankQuestions(uniId: string): BankQuestion[] {
   try {

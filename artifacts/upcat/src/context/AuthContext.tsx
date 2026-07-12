@@ -51,7 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       let desc = error?.message || "Could not sign in with Google. Please try again.";
       
       if (error?.message?.includes("auth/api-key-not-valid") || error?.message?.includes("API key")) {
-        desc = "Firebase is not configured yet with valid credentials. You can still use IskolarTrack in local mode!";
+        desc = "Firebase is not configured yet with valid credentials. You can still use KolehiyoTrack in local mode!";
       } else if (error?.message?.includes("auth/unauthorized-domain") || error?.code === "auth/unauthorized-domain") {
         title = "Authorized Domain Required";
         desc = `Please add "${window.location.hostname}" to your Firebase Console under Authentication > Settings > Authorized Domains.`;
@@ -68,6 +68,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOutUser = async () => {
     try {
       await signOut(auth);
+      
+      // Clear localStorage of any uploaded question banks and used history so they don't overlap
+      const keysToClear: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (
+          key.startsWith("iskolartrack_bank_") || 
+          key.startsWith("iskolartrack_used_") ||
+          key.startsWith("kolehiyotrack_bank_") ||
+          key.startsWith("kolehiyotrack_used_")
+        )) {
+          keysToClear.push(key);
+        }
+      }
+      keysToClear.forEach((key) => localStorage.removeItem(key));
+      
+      // Force page reload to ensure all state is completely clean and reset
+      window.location.reload();
     } catch (error: any) {
       console.error("Sign-out error:", error);
       toast({

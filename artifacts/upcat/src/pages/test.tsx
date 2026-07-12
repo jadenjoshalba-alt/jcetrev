@@ -196,7 +196,7 @@ export default function TestPage() {
   return (
     <div className="min-h-[100dvh] flex flex-col bg-background">
       <header className="border-b p-4 flex justify-between items-center sticky top-0 bg-background z-10">
-        <div className="font-bold text-lg">IskolarTrack Mock Test</div>
+        <div className="font-bold text-lg">KolehiyoTrack Mock Test</div>
         <div className="flex items-center gap-4">
           <span className="text-sm text-muted-foreground">{answeredCount}/{questions.length} answered</span>
           <span className={cn("font-mono text-lg font-bold", timeRemaining < 60 && "text-red-500 animate-pulse")}>

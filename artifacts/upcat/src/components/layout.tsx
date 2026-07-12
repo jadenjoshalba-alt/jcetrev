@@ -12,8 +12,19 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogIn, LogOut, Sun, Moon, Menu, Plus, Home, Book, X } from "lucide-react";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { LogIn, LogOut, Sun, Moon, Menu, Plus, Home, Book, X, History } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CURRENT_VERSION, CHANGELOG_DATA } from "../config/changelog";
 
 const UNIVERSITIES = [
   { id: 'upcat', name: 'University of the Philippines - (UPCAT 2027)' }
@@ -23,6 +34,7 @@ export function Layout({ children, hideSidebar = false }: { children: React.Reac
   const { user, loading, signInWithGoogle, signOutUser } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [changelogOpen, setChangelogOpen] = useState(false);
   const [location] = useLocation();
 
   return (
@@ -46,8 +58,8 @@ export function Layout({ children, hideSidebar = false }: { children: React.Reac
           >
             <div className="flex items-center justify-between h-16 px-4 border-b">
               <Link href="/" className="flex items-center gap-3 font-bold text-lg text-primary transition-colors hover:text-primary/80">
-                <img src={`${import.meta.env.BASE_URL}logo.png`} alt="IskolarTrack" className="h-8 w-8 object-contain" />
-                <span>IskolarTrack</span>
+                <img src={`${import.meta.env.BASE_URL}logo.png`} alt="KolehiyoTrack" className="h-8 w-8 object-contain" />
+                <span>KolehiyoTrack</span>
               </Link>
               <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setSidebarOpen(false)}>
                 <X className="h-5 w-5" />
@@ -71,15 +83,95 @@ export function Layout({ children, hideSidebar = false }: { children: React.Reac
                 </Button>
               </div>
               <nav className="space-y-1 px-2">
-                {UNIVERSITIES.map(uni => (
-                  <Link key={uni.id} href={`/university/${uni.id}`}>
-                    <span className={cn("flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors cursor-pointer line-clamp-1", location === `/university/${uni.id}` ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground")}>
-                      <Book className="h-4 w-4 shrink-0" />
-                      <span className="truncate">{uni.name}</span>
-                    </span>
-                  </Link>
-                ))}
+                {UNIVERSITIES.map(uni => {
+                  const isUP = uni.id === 'upcat';
+                  const isActive = location === `/university/${uni.id}`;
+                  return (
+                    <Link key={uni.id} href={`/university/${uni.id}`}>
+                      <span className={cn(
+                        "flex items-start gap-3 rounded-md px-3 py-2.5 transition-all cursor-pointer shadow-sm border",
+                        isUP 
+                          ? "bg-[#7b1113] text-white border-[#921416] hover:bg-[#8c1315]" 
+                          : isActive
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "text-muted-foreground hover:bg-muted hover:text-foreground border-transparent"
+                      )}>
+                        <img 
+                          src={`${import.meta.env.BASE_URL}up-logo.png`} 
+                          alt="UP logo" 
+                          className="h-5 w-5 shrink-0 object-contain mt-0.5" 
+                        />
+                        <span className="text-xs font-bold leading-normal break-words">{uni.name}</span>
+                      </span>
+                    </Link>
+                  );
+                })}
               </nav>
+            </div>
+
+            {/* Sidebar Footer with Changelog and Version */}
+            <div className="p-4 border-t bg-card/50 flex items-center justify-between mt-auto shrink-0">
+              <Dialog open={changelogOpen} onOpenChange={setChangelogOpen}>
+                <DialogTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/50 px-2 py-1.5 h-auto rounded-md cursor-pointer transition-colors"
+                  >
+                    <History className="h-3.5 w-3.5" />
+                    Changelog
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md md:max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2 text-xl font-bold">
+                      <History className="h-5 w-5 text-primary" />
+                      What's New in KolehiyoTrack
+                    </DialogTitle>
+                    <DialogDescription>
+                      Version {CURRENT_VERSION} — Latest Updates & Changes
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 my-3 max-h-[60vh] overflow-y-auto pr-1">
+                    {CHANGELOG_DATA.map((item) => (
+                      <div 
+                        key={item.version} 
+                        className={cn(
+                          "space-y-2 border-l-2 pl-4 py-1",
+                          item.isCurrent || item.version === CURRENT_VERSION
+                            ? "border-[#7b1113]" 
+                            : "border-muted"
+                        )}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-bold text-foreground">Version {item.version}</span>
+                          {(item.isCurrent || item.version === CURRENT_VERSION) && (
+                            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded font-medium">Current</span>
+                          )}
+                        </div>
+                        <p className="text-[10px] font-medium text-muted-foreground">{item.date}</p>
+                        <ul className="text-xs space-y-1.5 list-disc pl-4 text-muted-foreground leading-relaxed">
+                          {item.changes.map((change, idx) => (
+                            <li key={idx}>
+                              <strong className="text-foreground">{change.title}:</strong> {change.description}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                  <DialogFooter className="sm:justify-end">
+                    <DialogClose asChild>
+                      <Button variant="secondary" size="sm">
+                        Close
+                      </Button>
+                    </DialogClose>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+              <div className="text-[11px] font-mono font-bold text-muted-foreground bg-muted border px-2.5 py-1 rounded-md shadow-sm select-none">
+                {CURRENT_VERSION}
+              </div>
             </div>
           </aside>
         </>
